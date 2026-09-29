@@ -1,0 +1,43 @@
+=== Sample Structured Log JSON (CP1) ===
+
+Event 1: request_received
+{
+  "service": "api",
+  "payload": {
+    "message_preview": "What is your refund policy? My email is [REDACTED_EMAIL]"
+  },
+  "event": "request_received",
+  "correlation_id": "req-7b4d7eed",
+  "feature": "qa",
+  "session_id": "s01",
+  "env": "dev",
+  "model": "claude-sonnet-4-5",
+  "user_id_hash": "2055254ee30a",
+  "level": "info",
+  "ts": "2026-09-29T09:42:10.301168Z"
+}
+
+Event 2: response_sent
+{
+  "service": "api",
+  "latency_ms": 1292,
+  "ttft_ms": 50,
+  "tokens_in": 36,
+  "tokens_out": 118,
+  "cost_usd": 0.001878,
+  "quality_score": 0.9,
+  "tool_name": "retrieval",
+  "tool_success": true,
+  "payload": {
+    "answer_preview": "Starter answer. You should improve this output logic and add better quality checks."
+  },
+  "event": "response_sent",
+  "correlation_id": "req-7b4d7eed",
+  "feature": "qa",
+  "session_id": "s01",
+  "env": "dev",
+  "model": "claude-sonnet-4-5",
+  "user_id_hash": "2055254ee30a",
+  "level": "info",
+  "ts": "2026-09-29T09:42:12.160154Z"
+}

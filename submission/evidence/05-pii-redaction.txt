@@ -1,0 +1,33 @@
+=== PII Redaction Evidence (CP1) ===
+
+1. Email Redaction:
+Input message:
+  "What is your refund policy? My email is student@vinuni.edu.vn"
+Log output (in data/logs.jsonl line 2):
+  {"service": "api", "payload": {"message_preview": "What is your refund policy? My email is [REDACTED_EMAIL]"}, "event": "request_received", "correlation_id": "req-7b4d7eed", "feature": "qa", "session_id": "s01", "env": "dev", "model": "claude-sonnet-4-5", "user_id_hash": "2055254ee30a", "level": "info", "ts": "2026-09-29T09:42:10.301168Z"}
+
+2. Vietnamese Phone Number Redaction:
+Input message:
+  "Here is my phone 0987654321, what should be logged?"
+Log output (in data/logs.jsonl line 10):
+  {"service": "api", "payload": {"message_preview": "Here is my phone [REDACTED_PHONE_VN], what should be logged?"}, "event": "request_received", "correlation_id": "req-eadfbe11", "feature": "qa", "session_id": "s05", "env": "dev", "model": "claude-sonnet-4-5", "user_id_hash": "64f6ec689229", "level": "info", "ts": "2026-09-29T09:42:13.407574Z"}
+
+3. Credit Card Redaction:
+Input message:
+  "What is the policy for PII and credit card 4111 1111 1111 1111?"
+Log output (in data/logs.jsonl line 18):
+  {"service": "api", "payload": {"message_preview": "What is the policy for PII and credit card [REDACTED_CREDIT_CARD]?"}, "event": "request_received", "correlation_id": "req-c20ca040", "feature": "qa", "session_id": "s09", "env": "dev", "model": "claude-sonnet-4-5", "user_id_hash": "4d14d5d4f719", "level": "info", "ts": "2026-09-29T09:42:15.045798Z"}
+
+4. Citizen ID (CCCD) Redaction Test:
+Input text:
+  "CCCD is 001234567890"
+Runtime log output (`session_id=cp1-cccd`):
+  {"service":"api","payload":{"message_preview":"CCCD kiểm thử là [REDACTED_CCCD]"},"event":"request_received","correlation_id":"req-05fb01d5","env":"dev","model":"claude-sonnet-4-5","session_id":"cp1-cccd","user_id_hash":"652a2380247a","feature":"qa","level":"info"}
+
+5. Correlation ID validation:
+Request header input:
+  "x-request-id: req-invalid"
+Response headers:
+  "x-request-id: req-05fb01d5"
+  "x-response-time-ms: 1845.45"
+The invalid caller-provided ID was replaced by a valid `req-<8-hex>` ID and the same ID appeared in the structured log.

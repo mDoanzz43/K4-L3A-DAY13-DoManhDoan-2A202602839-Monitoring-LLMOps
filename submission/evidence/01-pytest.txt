@@ -1,0 +1,9 @@
+Command: python -m pytest -q
+Python: 3.11.9
+
+..........................                                               [100%]
+============================== warnings summary ===============================
+venv\Lib\site-packages\starlette\testclient.py:51
+  DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated.
+
+======================== 26 passed, 1 warning in 3.13s ========================

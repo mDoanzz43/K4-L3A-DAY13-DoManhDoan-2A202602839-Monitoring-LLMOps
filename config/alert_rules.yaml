@@ -1,25 +1,29 @@
 alerts:
-  - name: TODO_alert_1
-    severity: TODO
-    condition: TODO
-    duration: TODO
+  - name: HighLatencyP95
+    severity: warning
+    condition: "latency_p95_ms > 2500"
+    duration: 5m
     type: symptom-based
-    channel: slack
-    owner: TODO
-    runbook: docs/alerts.md#alert-1
-  - name: TODO_alert_2
-    severity: TODO
-    condition: TODO
-    duration: TODO
+    notification_type: slack
+    channel: "#llmops-alerts"
+    owner: oncall-engineer
+    runbook: docs/alerts.md#alert-1-high-latency-p95
+  - name: HighErrorRate
+    severity: critical
+    condition: "error_rate_pct > 2.0"
+    duration: 3m
     type: symptom-based
-    channel: slack
-    owner: TODO
-    runbook: docs/alerts.md#alert-2
-  - name: TODO_alert_3
-    severity: TODO
-    condition: TODO
-    duration: TODO
+    notification_type: slack
+    channel: "#llmops-alerts"
+    owner: oncall-engineer
+    runbook: docs/alerts.md#alert-2-high-error-rate
+  - name: LowRetrievalSuccessRate
+    severity: warning
+    condition: "retrieval_success_rate_pct < 90.0"
+    duration: 5m
     type: symptom-based
-    channel: slack
-    owner: TODO
-    runbook: docs/alerts.md#alert-3
+    notification_type: slack
+    channel: "#llmops-alerts"
+    owner: rag-team
+    runbook: docs/alerts.md#alert-3-low-retrieval-success-rate
+

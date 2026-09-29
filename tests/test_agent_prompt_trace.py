@@ -20,12 +20,28 @@ class RecordingLangfuseClient:
     def __init__(self) -> None:
         self.prompt = ManagedPrompt()
         self.span_updates: list[dict] = []
+        self.observations: list[RecordingObservation] = []
 
     def get_prompt(self, name: str, **kwargs):
         return self.prompt
 
     def update_current_span(self, **kwargs) -> None:
         self.span_updates.append(kwargs)
+
+    @contextmanager
+    def start_as_current_observation(self, **kwargs):
+        observation = RecordingObservation(kwargs)
+        self.observations.append(observation)
+        yield observation
+
+
+class RecordingObservation:
+    def __init__(self, started_with: dict) -> None:
+        self.started_with = started_with
+        self.updates: list[dict] = []
+
+    def update(self, **kwargs) -> None:
+        self.updates.append(kwargs)
 
 
 def test_agent_records_prompt_version_with_v4_observation_api(monkeypatch) -> None:
@@ -67,3 +83,13 @@ def test_agent_records_prompt_version_with_v4_observation_api(monkeypatch) -> No
     assert span_update["version"] == "3"
     assert propagated[0]["metadata"]["correlation_id"] == "req-12345678"
     assert propagated[-1]["prompt"] is client.prompt
+
+    retrieval, generation = client.observations
+    assert retrieval.started_with["as_type"] == "retriever"
+    assert retrieval.updates[-1]["metadata"]["retrieval_success"] is True
+    assert generation.started_with["as_type"] == "generation"
+    assert generation.started_with["model"] == agent.model
+    assert generation.started_with["prompt"] is client.prompt
+    assert generation.updates[-1]["usage_details"]["total"] > 0
+    assert generation.updates[-1]["cost_details"]["total"] > 0
+    assert generation.updates[-1]["metadata"]["correlation_id"] == "req-12345678"

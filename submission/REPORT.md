@@ -9,7 +9,7 @@
 - **Lớp:** K4-L3A
 - **Repository URL:** https://github.com/mDoanzz43/K4-L3A-DAY13-DoManhDoan-2A202602839-Monitoring-LLMOps
 - **Commit SHA cuối:** 
-- **Challenge ID:** 
+- **Challenge ID:** day13-k4-l3a-monitoring-llmops-v1
 - **Tên project Langfuse cá nhân:** `day13-k4-l3a-2A202602839`
 
 ## 2. Evidence index
@@ -18,7 +18,7 @@
 
 | Evidence | Đường dẫn |
 |---|---|
-| CP0 — Langfuse project có trace | `evidence/image.png` |
+| CP0 — Langfuse project có trace | `evidence/06-trace-list.png` |
 | Pytest cuối | `evidence/01-pytest.png` |
 | Log validator | `evidence/02-log-validator.png` |
 | Dashboard validator | `evidence/03-dashboard-validator.png` |
@@ -27,8 +27,8 @@
 | Trace list | `evidence/06-trace-list.png` |
 | Trace waterfall | `evidence/07-trace-waterfall.png` |
 | Trace metadata | `evidence/08-trace-metadata.png` |
-| Prompt versions | `evidence/09-prompt-versions.png` |
-| Prompt rollback | `evidence/10-prompt-rollback.png` |
+| Prompt versions | `evidence/09-prompt-version1.png`, `evidence/09-prompt-version2.png` |
+| Prompt rollback | `evidence/10-prompt-promoted.png`, `evidence/10-prompt-rollback.png` |
 | Dashboard runtime | `evidence/11-dashboard-overview.png` |
 | Incident metric | `evidence/12-incident-metric.png` |
 | Incident log | `evidence/13-incident-log.png` |
@@ -40,10 +40,10 @@
 |---|---|---|---|
 | `validate_logs.py` | 30/100 | 100/100 | Vượt mục tiêu gate (≥80/100), đạt điểm tuyệt đối |
 | `validate_dashboard.py` | 6/6 panel | 6/6 panel | Hợp lệ toàn bộ 6 panel theo contract dashboard.yaml |
-| `pytest` | 22 passed | 26 passed | 100% test pass; bổ sung test PII và middleware correlation ID |
-| Số traces hợp lệ | 0 | 10 | 10 traces được sinh qua load test |
+| `pytest` | 22 passed | 28 passed | 100% test pass; bổ sung test PII, middleware, tracing và dashboard runtime |
+| Số traces hợp lệ | 0 | 18 | Observations API v2 xác nhận 18 root traces gần nhất; workload cuối tạo 10 traces mới |
 | Số PII leak | 0 | 0 | Đã scrub sạch Email, Phone VN, Credit Card, CCCD |
-| Latency P95 / TTFT P95 | 1292.0ms / 50.0ms | 1292.0ms / 50.0ms | P50 đạt ~403ms, TTFT P95 là 50ms |
+| Latency P95 / TTFT P95 | 1292.0ms / 50.0ms | 1276.0ms / 50.0ms | Dashboard runtime: P50 152ms, P99 1276ms |
 | Retrieval success rate | 100% | 100% | 10/10 requests thành công |
 
 ## 4. Logging và PII
@@ -55,21 +55,21 @@
 
 ## 5. Tracing và prompt versioning
 
-- **Cách xác nhận traces do chính tôi tạo trong project cá nhân:**
-- **Cấu trúc root/retrieval/generation observations:**
-- **Cách nối trace với log:**
-- **Prompt name:**
-- **Version/label baseline:**
-- **Version/label candidate:**
-- **Trace ID của mỗi version:**
-- **Cách promote và rollback `production`:**
+- **Cách xác nhận traces do chính tôi tạo trong project cá nhân:** Workload được chạy với key của project `day13-k4-l3a-2A202602839`. Sau khi flush SDK, truy vấn Langfuse Observations API v2 trong cửa sổ 10 phút ghi nhận 18 root observations gần nhất; 10 request cuối đều trả HTTP 200 và sinh trace riêng.
+- **Cấu trúc root/retrieval/generation observations:** Root `lab-agent-run` loại `AGENT`; hai child cùng parent là `knowledge-retrieval` loại `RETRIEVER` và `llm-generation` loại `GENERATION`. Candidate trace `8492f5c40df54696c41e5030ff7d31ca` có model `claude-sonnet-4-5`, usage 49 input + 107 output = 156 tokens, total cost `$0.001752`.
+- **Cách nối trace với log:** Middleware tạo `correlation_id`, bind vào structured log và truyền vào `LabAgent.run`. Cùng ID được đặt trong metadata của root, retrieval và generation; ví dụ candidate trace dùng `req-4c3fbcbf`. Không capture raw input/output; chỉ ghi preview đã qua `summarize_text`/PII scrubber.
+- **Prompt name:** `day13-chat`.
+- **Version/label baseline:** version 1, labels `baseline` và `production` (trạng thái cuối sau rollback).
+- **Version/label candidate:** version 2, label `candidate`; template vẫn giữ đủ `{{feature}}`, `{{docs}}`, `{{message}}` và thêm yêu cầu trả lời súc tích theo context.
+- **Trace ID của mỗi version:** baseline/v1 `3962e96a8fc47342392697d04e4fa197`; candidate/v2 `8492f5c40df54696c41e5030ff7d31ca`; production sau promote v2 `a505b5ab2b1aa0bec39aacb194ec3f98`; production sau rollback v1 `ecfd42e9718e5ba73449cb7be1a4f454`.
+- **Cách promote và rollback `production`:** Dùng `scripts/complete_cp2_langfuse.py`: bỏ `production` khỏi v1 và gắn vào v2, chạy một trace xác nhận; sau đó bỏ label khỏi v2, gắn lại `baseline, production` cho v1 và chạy trace rollback. Script dùng cache TTL 0 để mỗi lần kiểm chứng đọc label mới nhất. Trạng thái cuối đã xác nhận: v1=`baseline, production`, v2=`candidate`.
 
 ## 6. Dashboard, SLO và alerts
 
-- **Dashboard và sáu panel:**
-- **SLO và lý do chọn:**
-- **Cách tính error budget:**
-- **Ba alert và runbook tương ứng:**
+- **Dashboard và sáu panel:** Dashboard runtime tại `/dashboard` đọc `data/logs.jsonl` trong cửa sổ 60 phút, tự refresh 30 giây và hiển thị đúng 6 panel: Latency/TTFT, Traffic, Errors/Retrieval, Cost, Tokens và Quality. Ảnh cuối ghi nhận P95 1276ms, TTFT P95 50ms, traffic 3.30 request/phút, error 0%, retrieval 100%, cost `$0.040518`, tổng 3242 tokens và quality 0.880. Contract được kiểm tra bằng `validate_dashboard.py` đạt 6/6.
+- **SLO và lý do chọn:** `config/slo.yaml` định nghĩa request tốt là `response_sent` có latency ≤3000ms, mục tiêu 99.5% trong 28 ngày. Baseline P95 1292ms nên 3000ms tạo khoảng đệm hợp lý cho concurrency nhưng vẫn phát hiện rõ retrieval chậm; guardrails bổ sung error ≤2%, cost/ngày ≤$2.5, quality ≥0.75 và retrieval success ≥90%.
+- **Cách tính error budget:** `100% - 99.5% = 0.5%`; tương đương tối đa 5 bad requests/1000, 50/10000, hoặc 201.6 phút trong 28 ngày nếu minh họa theo availability liên tục.
+- **Ba alert và runbook tương ứng:** `HighLatencyP95` (>2500ms trong 5m, warning), `HighErrorRate` (>2% trong 3m, critical), `LowRetrievalSuccessRate` (<90% trong 5m, warning). Cả ba là symptom-based, có owner, Slack `#llmops-alerts` và runbook Metrics → Logs → Traces tại `docs/alerts.md`.
 
 ## 7. Điều tra challenge
 

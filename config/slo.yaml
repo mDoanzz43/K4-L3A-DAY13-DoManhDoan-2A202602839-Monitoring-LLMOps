@@ -7,7 +7,18 @@ primary_slo:
     total_event: 'event == "request_received"'
   target_percent: 99.5
   error_budget_percent: 0.5
-  note: Học viên phải giải thích hoặc điều chỉnh ngưỡng bằng baseline của mình.
+  error_budget_examples:
+    per_1000_requests: 5
+    per_10000_requests: 50
+    equivalent_minutes_in_28d: 201.6
+  baseline:
+    latency_p95_ms: 1292
+    ttft_p95_ms: 50
+    retrieval_success_rate_pct: 100
+  rationale: >-
+    Baseline P95 là 1292 ms; ngưỡng 3000 ms tạo khoảng đệm cho tải đồng thời
+    nhưng vẫn phát hiện rõ kịch bản retrieval chậm. Mục tiêu 99.5% cho phép tối đa
+    0.5% request lỗi hoặc vượt 3000 ms trong cửa sổ 28 ngày.
 guardrails:
   error_rate_pct_max: 2
   daily_cost_usd_max: 2.5

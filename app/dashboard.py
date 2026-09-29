@@ -15,6 +15,17 @@ from .metrics import percentile
 WINDOW_MINUTES = 60
 
 
+def _challenge_latency_threshold() -> int | None:
+    path = Path("config/challenge.json")
+    if not path.exists():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8")).get("latency_threshold_ms")
+    except (json.JSONDecodeError, OSError):
+        return None
+    return value if isinstance(value, int) and value > 0 else None
+
+
 def _timestamp(record: dict[str, Any]) -> datetime | None:
     raw = record.get("ts")
     if not isinstance(raw, str):
@@ -92,10 +103,15 @@ def _metric(label: str, value: str) -> str:
 
 def render_dashboard(records: list[dict[str, Any]]) -> str:
     summary = dashboard_summary(records)
+    challenge_threshold = _challenge_latency_threshold()
+    latency_limit = challenge_threshold or 3000
+    latency_threshold_text = "P95 SLO ≤ 3000 ms"
+    if challenge_threshold:
+        latency_threshold_text += f" • challenge > {challenge_threshold} ms"
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     errors = ", ".join(f"{key}: {value}" for key, value in summary["error_breakdown"].items()) or "none"
     cards = [
-        ("latency", "Latency & TTFT", "P95 SLO ≤ 3000 ms", "ms", "ok" if summary["latency_p95"] <= 3000 else "bad", "".join([
+        ("latency", "Latency & TTFT", latency_threshold_text, "ms", "ok" if summary["latency_p95"] <= latency_limit else "bad", "".join([
             _metric("Latency P50", f'{summary["latency_p50"]:.0f} ms'),
             _metric("Latency P95", f'{summary["latency_p95"]:.0f} ms'),
             _metric("Latency P99", f'{summary["latency_p99"]:.0f} ms'),

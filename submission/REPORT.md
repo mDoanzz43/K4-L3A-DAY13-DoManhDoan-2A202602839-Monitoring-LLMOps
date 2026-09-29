@@ -51,7 +51,7 @@
 - **Cách tạo/nhận và truyền correlation ID:** Trong `CorrelationIdMiddleware` (`app/middleware.py`), trước mỗi request gọi `clear_contextvars()` để tránh rò rỉ context giữa các request. Header `x-request-id` chỉ được nhận khi khớp chính xác `req-<8-hex>`; nếu thiếu hoặc sai định dạng thì sinh ID mới bằng `f"req-{uuid.uuid4().hex[:8]}"`. Sau đó bind vào `structlog` contextvars qua `bind_contextvars(correlation_id=correlation_id)` và lưu vào `request.state.correlation_id`. Khi request hoàn tất, trả correlation ID qua response header `x-request-id` và thời gian xử lý qua header `x-response-time-ms`.
 - **Các metadata được ghi vào structured log:** Tại endpoint `/chat` (`app/main.py`), trước khi ghi log `request_received`, gọi `bind_contextvars` để enrich context với: `user_id_hash` (băm sha256 12 ký tự), `session_id`, `feature`, `model` (lấy từ `agent.model`), và `env` (từ biến môi trường `APP_ENV`). Nhờ vậy các log tiếp theo (`response_sent`, `request_failed`) đều tự động chứa đầy đủ các trường này.
 - **Cách bảo đảm PII được scrub trước khi ghi:** Xây dựng processor `scrub_event` và hàm đệ quy `_scrub_value` trong `app/logging_config.py` để quét và che toàn bộ chuỗi nhạy cảm theo các regex trong `app/pii.py` (`email`, `phone_vn`, `cccd`, `credit_card`). Processor `scrub_event` được đặt ngay trước `JsonlFileProcessor` và `JSONRenderer` trong pipeline của `structlog`, đảm bảo dữ liệu luôn được che giấu thành `[REDACTED_...]` trước khi serialize JSON hoặc ghi vào file `data/logs.jsonl`.
-- **Cách kiểm chứng kết quả:** Chạy `python scripts/validate_logs.py` đạt 100/100 điểm với 0 PII leak detected và 30 unique correlation IDs. Chạy `python -m pytest -q` pass 26/26 tests, gồm Email, Phone VN, CCCD, thẻ thanh toán và propagation/validation correlation ID. Kiểm tra trực tiếp runtime log thấy các trường PII đã được thay thế thành `[REDACTED_EMAIL]`, `[REDACTED_PHONE_VN]`, `[REDACTED_CCCD]`, `[REDACTED_CREDIT_CARD]`.
+- **Cách kiểm chứng kết quả:** Chạy `python scripts/validate_logs.py` đạt 100/100 điểm với 0 PII leak detected. Chạy `python -m pytest -q` pass 28/28 tests, gồm Email, Phone VN, CCCD, thẻ thanh toán, propagation/validation correlation ID, tracing và dashboard runtime. Kiểm tra trực tiếp runtime log thấy các trường PII đã được thay thế thành `[REDACTED_EMAIL]`, `[REDACTED_PHONE_VN]`, `[REDACTED_CCCD]`, `[REDACTED_CREDIT_CARD]`.
 
 ## 5. Tracing và prompt versioning
 
@@ -73,31 +73,31 @@
 
 ## 7. Điều tra challenge
 
-- **Challenge ID:**
-- **Khoảng thời gian điều tra:**
-- **Triệu chứng từ metrics:**
-- **Log line và correlation ID liên quan:**
-- **Trace ID và span gây ảnh hưởng:**
-- **Root cause:**
-- **Fix action:**
-- **Preventive measure:**
+- **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1` (cohort K4, seed 1311, affected feature `monitoring`).
+- **Khoảng thời gian điều tra:** 2026-09-29 11:57:45Z–11:58:03Z. Challenge chạy 5 query với concurrency 5; `rag_slow` được tắt ngay sau khi thu evidence.
+- **Triệu chứng từ metrics:** So với baseline P95 1276ms/P99 1276ms, dashboard incident ghi nhận P95 tăng lên 2654ms và P99 lên 3927ms; vượt `latency_threshold_ms=2000` của challenge. Error rate vẫn 0%, retrieval success 100%, TTFT P95 vẫn 50ms, nên đây là sự cố latency chứ không phải lỗi request hay generation TTFT.
+- **Log line và correlation ID liên quan:** Request session `k4-l3a-challenge-s03`, `correlation_id=req-9715a095`, `response_sent.latency_ms=3927`, `ttft_ms=50`, `tool_name=retrieval`, `tool_success=true`, timestamp `2026-09-29T11:57:52.210511Z`.
+- **Trace ID và span gây ảnh hưởng:** Langfuse trace `2920186b9db9c1d3eb81571b964ad3c2` có cùng `correlation_id=req-9715a095`. Root `lab-agent-run` mất 3.928s; child `knowledge-retrieval` mất 2.501s trong khi `llm-generation` chỉ 0.152s. Retrieval là span chiếm phần lớn latency.
+- **Root cause:** Challenge bật incident `rag_slow`, làm retrieval sleep/chậm 2.5 giây. Generation, token/cost và TTFT không tăng tương ứng, nên không phải LLM là nút thắt.
+- **Fix action:** Tắt `rag_slow`; với hệ thống thật, kiểm tra vector store/index/network, đặt timeout và fallback cho retrieval, cache các truy vấn phổ biến, đồng thời giới hạn concurrency để tránh tail latency bị khuếch đại.
+- **Preventive measure:** Alert `HighLatencyP95` và `LowRetrievalSuccessRate`; theo dõi riêng latency retrieval, đặt span budget/timeout, circuit breaker và load test định kỳ. Runbook bắt buộc nối metric → correlation ID trong log → retrieval span trong trace trước khi kết luận.
 
 ## 8. Giải thích và tự đánh giá
 
-- **Một quyết định kỹ thuật quan trọng và lý do:**
-- **Một lỗi/blocker đã gặp:**
-- **Cách tìm nguyên nhân và xử lý:**
-- **Cách hiểu luồng Metrics → Logs → Traces:**
-- **Vai trò của prompt version, token/cost, SLO hoặc rollback trong vận hành LLM:**
-- **Điều quan trọng nhất đã học:**
-- **Hạn chế hoặc phần chưa hoàn thành, nếu có:**
+- **Một quyết định kỹ thuật quan trọng và lý do:** Tôi dùng `correlation_id` làm khóa xuyên suốt structured log và metadata của cả root/retrieval/generation observations. Dashboard runtime đọc cùng nguồn `data/logs.jsonl`, còn Langfuse giữ trace chi tiết; cách tách này giữ log dễ truy vấn nhưng vẫn khoanh vùng được span mà không capture raw PII.
+- **Một lỗi/blocker đã gặp:** Langfuse organization mới trả HTTP 410 khi script dùng legacy `GET /api/public/traces`, dù dữ liệu trace đã được ingest thành công.
+- **Cách tìm nguyên nhân và xử lý:** Tôi đọc error response, xác nhận endpoint thay thế rồi chuyển script sang Observations API v2 `get_many`, lọc root observation theo session và nhóm bằng `trace_id`. Sau đó truy vấn các field group `metadata,model,usage,prompt,metrics` để kiểm tra cây trace, token và cost.
+- **Cách hiểu luồng Metrics → Logs → Traces:** Metrics cho biết triệu chứng và cửa sổ sự cố (P95/P99 tăng); structured log trong cửa sổ đó cung cấp request cụ thể qua `correlation_id`; trace cùng ID cho thấy thời gian từng child span. Với challenge, dashboard chỉ ra P95 2654ms/P99 3927ms, log chọn `req-9715a095`, rồi trace chứng minh retrieval 2.501s trong khi generation chỉ 0.152s, từ đó kết luận `rag_slow` là root cause.
+- **Vai trò của prompt version, token/cost, SLO hoặc rollback trong vận hành LLM:** Prompt version/label cho biết chính xác nội dung nào phục vụ request và cho phép rollback mà không sửa code. Token/cost giúp phát hiện output bất thường hoặc cost spike. SLO/error budget chuyển metric thành mức chấp nhận vận hành; alert duration tránh cảnh báo do spike ngắn. Workflow promote v2 rồi rollback v1 đã được xác nhận bằng hai trace thật.
+- **Điều quan trọng nhất đã học:** Không nên kết luận nguyên nhân chỉ từ average hoặc một lớp dữ liệu. Một incident đáng tin cậy cần metric xác định triệu chứng, log xác định request và trace chứng minh span gây ảnh hưởng, đồng thời evidence phải cùng correlation ID/thời gian.
+- **Hạn chế hoặc phần chưa hoàn thành, nếu có:** Lab dùng fake LLM và dashboard local dựa trên JSONL nên chưa phản ánh storage/aggregation phân tán ở production. Phần kỹ thuật và evidence bắt buộc CP0–CP3 đã hoàn thành; commit SHA cuối và thao tác nộp LMS chỉ được chốt ở CP4 sau lần kiểm tra cuối.
 
 ## 9. Checklist trước khi nộp
 
-- [ ] Kết quả và evidence thuộc commit SHA cuối.
-- [ ] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
-- [ ] Incident evidence nối đúng metric → log → trace.
-- [ ] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
-- [ ] Repository chạy lại được theo README.
-- [ ] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
+- [x] Kết quả và evidence được chuẩn bị để đưa vào commit CP3 đã kiểm thử.
+- [x] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
+- [x] Incident evidence nối đúng metric → log → trace.
+- [x] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
+- [x] Repository chạy lại được theo README.
+- [x] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
 - [ ] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.

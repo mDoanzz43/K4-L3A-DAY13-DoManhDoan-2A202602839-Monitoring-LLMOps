@@ -37,8 +37,8 @@ Sau lab, bạn có thể:
 Windows PowerShell:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 Copy-Item .env.example .env
@@ -47,8 +47,8 @@ Copy-Item .env.example .env
 macOS/Linux:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+python -m venv venv
+source venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 cp .env.example .env
@@ -151,7 +151,7 @@ git status --short
 git log -1 --oneline
 ```
 
-- [ ] Không có `.env`, secret, `.venv/`, PII thô hoặc evidence của học viên/lớp khác.
+- [ ] Không có `.env`, secret, `venv/`, PII thô hoặc evidence của học viên/lớp khác.
 - [ ] `submission/REPORT.md` đã đủ; mọi ảnh dùng đường dẫn tương đối và mở được.
 - [ ] Bạn demo và giải thích được luồng Metrics → Logs → Traces → Root cause.
 

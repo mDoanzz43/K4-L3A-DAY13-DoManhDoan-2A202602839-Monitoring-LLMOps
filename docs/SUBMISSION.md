@@ -154,7 +154,7 @@ Nội dung phải do chính học viên thực hiện và khớp với source, e
 
 - `.env`, Langfuse secret, API key hoặc token.
 - PII nguyên văn trong log, trace, screenshot hoặc report.
-- `.venv/`, cache, dependency đã cài hoặc file sinh ra không phục vụ chấm.
+- `venv/`, cache, dependency đã cài hoặc file sinh ra không phục vụ chấm.
 - Source, report, trace ID hoặc evidence của học viên/lớp khác.
 - Trace/prompt lấy từ project dùng chung hoặc project của người khác.
 - Evidence giả hoặc ảnh đã chỉnh sửa làm sai lệch kết quả.

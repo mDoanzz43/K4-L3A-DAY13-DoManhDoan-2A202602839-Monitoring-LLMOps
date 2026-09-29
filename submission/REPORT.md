@@ -94,10 +94,10 @@
 
 ## 9. Checklist trước khi nộp
 
-- [x] Kết quả và evidence được chuẩn bị để đưa vào commit CP3 đã kiểm thử.
+- [x] Kết quả và evidence thuộc commit nội dung cuối đã kiểm thử.
 - [x] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
 - [x] Incident evidence nối đúng metric → log → trace.
 - [x] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
 - [x] Repository chạy lại được theo README.
 - [x] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
-- [ ] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.
+- [ ] URL repo và commit SHA cuối sẽ được nộp trên LMS/Codelabs sau khi push.

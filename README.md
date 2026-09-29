@@ -74,6 +74,13 @@ Chạy API ở terminal thứ nhất:
 uvicorn app.main:app --reload --env-file .env
 ```
 
+Sau khi API khởi động, mở các endpoint:
+
+- Swagger: `http://127.0.0.1:8000/docs`
+- Health check: `http://127.0.0.1:8000/health`
+- Metrics snapshot: `http://127.0.0.1:8000/metrics`
+- Dashboard 6 panel: `http://127.0.0.1:8000/dashboard`
+
 Chạy baseline ở terminal thứ hai:
 
 ```bash
@@ -151,9 +158,9 @@ git status --short
 git log -1 --oneline
 ```
 
-- [ ] Không có `.env`, secret, `venv/`, PII thô hoặc evidence của học viên/lớp khác.
-- [ ] `submission/REPORT.md` đã đủ; mọi ảnh dùng đường dẫn tương đối và mở được.
-- [ ] Bạn demo và giải thích được luồng Metrics → Logs → Traces → Root cause.
+- [x] Không có `.env`, secret, `venv/`, PII thô hoặc evidence của học viên/lớp khác.
+- [x] `submission/REPORT.md` đã đủ; mọi ảnh dùng đường dẫn tương đối và mở được.
+- [x] Có thể demo và giải thích luồng Metrics → Logs → Traces → Root cause.
 
 ## Tên repo bài nộp
 
